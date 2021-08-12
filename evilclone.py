@@ -14,6 +14,7 @@ import subprocess
 import sys
 from getpass import getuser
 from glob import glob
+from platform import python_version
 from shutil import rmtree
 
 try:
@@ -64,7 +65,7 @@ def evilclone(
 
     if clone:
         product = get_repo_path(product, branch=branch)
-        env = create_environment(
+        environment = create_environment(
             environment,
             product,
             is_repo=True,
@@ -73,28 +74,23 @@ def evilclone(
         )
         repo_path = clone_repo(
             product,
-            env,
+            environment,
             product_dir=product_dir,
             branch=branch,
             yes=yes,
         )
-        install_repo(repo_path, env, yes=yes)
+        install_repo(repo_path, environment, yes=yes)
         lmod_envvars["PATH"] = os.path.join(repo_path, "bin")
         lmod_envvars["PYTHONPATH"] = repo_path
 
     else:
-        env = create_environment(environment, product, is_repo=False, yes=yes)
+        environment = create_environment(environment, product, is_repo=False, yes=yes)
         click.echo(click.style("pip-installing product.", fg="blue"))
-        run(
-            'eval "$(pyenv init -)" && '
-            'eval "$(pyenv virtualenv-init -)" && '
-            f"pyenv shell {env} && "
-            f"pip install {product}"
-        )
+        run_with_pyenv(f"pip install {product}", environment)
 
     create_modulefile(
         product,
-        env,
+        environment,
         is_repo=clone,
         branch=branch,
         repo_path=repo_path,
@@ -119,6 +115,26 @@ def run(command: str, shell=True, cwd=None) -> str:
         fail(f"Command {command} failed with error: {cmd.stderr.decode()}")
 
     return cmd.stdout.decode()
+
+
+def run_with_pyenv(command: str, environment: str, **kwargs):
+    """Runs a command in a valid pyenv environment."""
+
+    # This is a hack but it seems to be necessary when running in a subprocess.
+
+    env_path = get_env_path(environment)
+
+    full_command = (
+        'eval "$(pyenv init --path -)" && '
+        'export PATH="$PYENV_ROOT/bin:$PATH" && '
+        'export PATH="$PYENV_ROOT/shims:$PATH" && '
+        'eval "$(pyenv init -)" && '
+        f"pyenv shell {environment} && "
+        f"export VIRTUAL_ENV='{env_path}' && "
+        f"{command}"
+    )
+
+    run(full_command, **kwargs)
 
 
 def yn(msg: str, default="y", yes=False) -> bool:
@@ -198,11 +214,8 @@ def create_environment(
 
         pyenv_global = run("pyenv global").strip()
         run(f"pyenv virtualenv {pyenv_global} {environment}")
-        run(
-            'eval "$(pyenv init -)" && '
-            f"pyenv shell {environment} && "
-            "pip install -U pip setuptools wheel"
-        )
+
+        run_with_pyenv("pip install -U pip setuptools wheel", environment)
 
         return environment
 
@@ -225,7 +238,10 @@ def clone_repo(
         path = click.prompt("Path for cloned repository?", default=default_path)
 
     if os.path.exists(path):
-        fail("Path already exists.")
+        if yn("Path already exists. Use it?"):
+            return path
+        else:
+            fail()
 
     click.echo(click.style("Cloning repository.", fg="blue"))
     run(f"git clone {repo_url} {path}")
@@ -251,6 +267,23 @@ def clone_repo(
     return path
 
 
+def get_env_path(environment: str):
+    """Get the environment path."""
+
+    python_versions = run("pyenv versions --bare --skip-aliases").splitlines()
+
+    env_path = None
+
+    for version in python_versions:
+        if environment in version:
+            env_path = os.path.join(os.environ["PYENV_ROOT"], "versions", version)
+
+    if env_path is None:
+        fail("Cannot find environment.")
+
+    return env_path
+
+
 def install_repo(repo_path: str, environment: str, yes=False):
     """Install the repository."""
 
@@ -270,25 +303,8 @@ def install_repo(repo_path: str, environment: str, yes=False):
             return
 
     if yn(prompt, yes=yes):
-
-        if command == "poetry install":
-            click.echo(
-                click.style(
-                    "Poetry installation is not currently supported. "
-                    "Install the product manually.",
-                    fg="yellow",
-                )
-            )
-
-        else:
-            click.echo(click.style("Running installation.", fg="blue"))
-            run(
-                'eval "$(pyenv init -)" && '
-                'eval "$(pyenv virtualenv-init -)" && '
-                f"cd {repo_path} && "
-                f"pyenv shell --unset && "
-                f"{command}",
-            )
+        click.echo(click.style("Running installation.", fg="blue"))
+        run_with_pyenv(command, environment)
 
     return
 
