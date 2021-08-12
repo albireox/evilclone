@@ -194,17 +194,16 @@ def create_environment(
             if version:
                 environment = getuser() + "-" + name + "-" + version
 
+    environment = click.prompt("Environment name", default=environment)
+    if not environment:
+        fail()
+
     if environment in versions:
         if yn("Environment already exists. Use it?", yes=yes):
             return environment
         else:
             fail()
     else:
-        if environment is None or not yn(f"Create environment {environment}?", yes=yes):
-            environment = click.prompt("Environment name:")
-            if not environment:
-                fail()
-
         click.echo(
             click.style(
                 f"Creating virtual environment {environment}.",
