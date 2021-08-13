@@ -198,6 +198,9 @@ def create_environment(
     if not environment:
         fail()
 
+    pyenv_versions = run("pyenv versions --bare")
+    versions = list(map(lambda x: x.strip(), pyenv_versions.splitlines()))
+
     if environment in versions:
         if yn("Environment already exists. Use it?", yes=yes):
             return environment
