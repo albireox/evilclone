@@ -257,7 +257,7 @@ def clone_repo(
     current_branch = match.groups()[0]
 
     if current_branch != branch:
-        run(f"git checkout -b {branch}")
+        run(f"git checkout -b {branch} origin/{branch}")
 
     with open(".python-version", "w") as f:
         f.write(environment)
