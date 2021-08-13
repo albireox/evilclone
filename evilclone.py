@@ -183,9 +183,6 @@ def create_environment(
 ) -> str:
     """Creates the virtual environment."""
 
-    pyenv_versions = run("pyenv versions")
-    versions = list(map(lambda x: x.strip(), pyenv_versions.splitlines()))
-
     if environment is None:
         if is_repo:
             environment = getuser() + "-" + product.split("/")[-1] + "-" + branch
