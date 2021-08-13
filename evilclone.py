@@ -14,7 +14,6 @@ import subprocess
 import sys
 from getpass import getuser
 from glob import glob
-from platform import python_version
 from shutil import rmtree
 
 try:
