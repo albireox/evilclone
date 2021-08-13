@@ -62,6 +62,8 @@ def evilclone(
     lmod_envvars = {}
     repo_path = None
 
+    name = get_name(product, is_repo=clone)
+
     if clone:
         product = get_repo_path(product, branch=branch)
         environment = create_environment(
@@ -69,6 +71,7 @@ def evilclone(
             product,
             is_repo=True,
             branch=branch,
+            name=name,
             yes=yes,
         )
         repo_path = clone_repo(
@@ -83,7 +86,13 @@ def evilclone(
         lmod_envvars["PYTHONPATH"] = repo_path
 
     else:
-        environment = create_environment(environment, product, is_repo=False, yes=yes)
+        environment = create_environment(
+            environment,
+            product,
+            is_repo=False,
+            name=name,
+            yes=yes,
+        )
         click.echo(click.style("pip-installing product.", fg="blue"))
         run_with_pyenv(f"pip install {product}", environment)
 
@@ -92,6 +101,7 @@ def evilclone(
         environment,
         is_repo=clone,
         branch=branch,
+        name=name,
         repo_path=repo_path,
         envvars=lmod_envvars,
         modulepath=modulepath,
@@ -153,6 +163,19 @@ def yn(msg: str, default="y", yes=False) -> bool:
     return True if res == "y" else False
 
 
+def get_name(product: str, is_repo=False) -> str:
+    """Prompts for the product name."""
+
+    if not is_repo:
+        name, _ = get_product_parts(product)
+    else:
+        name = product.split("/")[-1]
+
+    name = click.prompt("Product name", default=name)
+
+    return name
+
+
 def get_repo_path(product: str, branch="main"):
     """Returns the path to the repository."""
 
@@ -178,6 +201,7 @@ def create_environment(
     product: str,
     is_repo=False,
     branch="main",
+    name: str | None = None,
     yes=False,
 ) -> str:
     """Creates the virtual environment."""
@@ -186,7 +210,8 @@ def create_environment(
         if is_repo:
             environment = getuser() + "-" + product.split("/")[-1] + "-" + branch
         else:
-            name, version = get_product_parts(product)
+            auto_name, version = get_product_parts(product)
+            name = name or auto_name
             if version:
                 environment = getuser() + "-" + name + "-" + version
 
@@ -312,6 +337,7 @@ def create_modulefile(
     environment: str,
     is_repo=False,
     branch="main",
+    name: str | None = None,
     repo_path: str | None = None,
     envvars={},
     modulepath: str | None = None,
@@ -328,10 +354,13 @@ def create_modulefile(
         modulepath = str(modulepath)
 
     if is_repo:
-        name = product.split("/")[-1]
+        name = name or product.split("/")[-1]
         version = branch
     else:
-        name, version = get_product_parts(product)
+        if name:
+            _, version = get_product_parts(product)
+        else:
+            name, version = get_product_parts(product)
 
     modulepath = os.path.join(modulepath, name, version + ".lua")
 
