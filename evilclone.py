@@ -356,7 +356,7 @@ def create_modulefile(
 
     if deps:
         for dep in deps:
-            lines += [f"load({dep})", f"prereq({dep})", ""]
+            lines += [f"load('{dep}')", f"prereq('{dep}')", ""]
 
     if is_repo and repo_path:
         lines += [f"setenv('{name.upper()}_DIR', '{repo_path}')"]
