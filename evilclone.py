@@ -83,7 +83,6 @@ def evilclone(
             yes=yes,
         )
         installed = install_repo(repo_path, environment, yes=yes)
-        lmod_envvars["PATH"] = os.path.join(repo_path, "bin")
 
     else:
         environment = create_environment(
@@ -95,6 +94,7 @@ def evilclone(
         )
         click.echo(click.style("pip-installing product.", fg="blue"))
         run_with_pyenv(f"pip install {product}", environment)
+        installed = True
 
     create_modulefile(
         product,
@@ -384,10 +384,15 @@ def create_modulefile(
     else:
         deps = dep_prompt.split()
 
-    if not installed:
+    if not installed and repo_path:
         if yn("Add PYTHONPATH?"):
             pythonpath = click.prompt("PYTHONATH to use", default=repo_path)
             envvars["PYTHONPATH"] = pythonpath
+
+    if yn("Add to PATH?") and repo_path:
+        default_path = os.path.join(repo_path, "bin")
+        path = click.prompt("PYTHONATH to use", default=default_path)
+        envvars["PATH"] = path
 
     lines = [f"conflict('{name}')", ""]
 
