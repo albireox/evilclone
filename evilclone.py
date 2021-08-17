@@ -15,6 +15,7 @@ import sys
 from getpass import getuser
 from glob import glob
 from shutil import rmtree
+from typing import Tuple, cast
 
 try:
     import click
@@ -81,9 +82,8 @@ def evilclone(
             branch=branch,
             yes=yes,
         )
-        install_repo(repo_path, environment, yes=yes)
+        installed = install_repo(repo_path, environment, yes=yes)
         lmod_envvars["PATH"] = os.path.join(repo_path, "bin")
-        lmod_envvars["PYTHONPATH"] = repo_path
 
     else:
         environment = create_environment(
@@ -102,6 +102,7 @@ def evilclone(
         is_repo=clone,
         branch=branch,
         name=name,
+        installed=installed,
         repo_path=repo_path,
         envvars=lmod_envvars,
         modulepath=modulepath,
@@ -188,12 +189,12 @@ def get_repo_path(product: str, branch="main"):
     return product
 
 
-def get_product_parts(product: str):
+def get_product_parts(product: str) -> Tuple[str, str]:
     """Split dependency specification into name and version."""
 
     match = re.match(r"([a-zA-Z0-9_-]+)[><=~!]*([0-9.]*)", product)
     assert match and (match.group(2) is None or match.group(2) != "")
-    return match.groups()
+    return cast(Tuple[str, str], match.groups())
 
 
 def create_environment(
@@ -307,7 +308,7 @@ def get_env_path(environment: str):
     return env_path
 
 
-def install_repo(repo_path: str, environment: str, yes=False):
+def install_repo(repo_path: str, environment: str, yes=False) -> bool:
     """Install the repository."""
 
     os.chdir(repo_path)
@@ -323,13 +324,14 @@ def install_repo(repo_path: str, environment: str, yes=False):
         if not yn("Cannot find setup.py or pyproject.py. Continue?", yes=yes):
             fail()
         else:
-            return
+            return False
 
     if yn(prompt, yes=yes):
         click.echo(click.style("Running installation.", fg="blue"))
         run_with_pyenv(command, environment)
+        return True
 
-    return
+    return False
 
 
 def create_modulefile(
@@ -338,6 +340,7 @@ def create_modulefile(
     is_repo=False,
     branch="main",
     name: str | None = None,
+    installed: bool = False,
     repo_path: str | None = None,
     envvars={},
     modulepath: str | None = None,
@@ -362,10 +365,11 @@ def create_modulefile(
         else:
             name, version = get_product_parts(product)
 
+    assert name
     modulepath = os.path.join(modulepath, name, version + ".lua")
 
     if yes is False:
-        modulepath = click.prompt("Module path:", default=modulepath)
+        modulepath = click.prompt("Module path", default=modulepath)
     if not modulepath:
         fail()
     if os.path.exists(modulepath):
@@ -379,6 +383,11 @@ def create_modulefile(
         deps = None
     else:
         deps = dep_prompt.split()
+
+    if not installed:
+        if yn("Add PYTHONPATH?"):
+            pythonpath = click.prompt("PYTHONATH to use", default=repo_path)
+            envvars["PYTHONPATH"] = pythonpath
 
     lines = [f"conflict('{name}')", ""]
 
