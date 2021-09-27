@@ -382,7 +382,7 @@ def create_modulefile(
     else:
         deps = dep_prompt.split()
 
-    if not installed and repo_path:
+    if installed and repo_path:
         if yn("Add PYTHONPATH?", default="n"):
             pythonpath = click.prompt("PYTHONATH to use", default="repo_path")
             envvars["PYTHONPATH"] = pythonpath
