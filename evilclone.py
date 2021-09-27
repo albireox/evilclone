@@ -82,7 +82,7 @@ def evilclone(
             branch=branch,
             yes=yes,
         )
-        install_repo(repo_path, environment, yes=yes)
+        installed = install_repo(repo_path, environment, yes=yes)
 
     else:
         environment = create_environment(
@@ -102,6 +102,7 @@ def evilclone(
         is_repo=clone,
         branch=branch,
         name=name,
+        installed=installed,
         repo_path=repo_path,
         envvars=lmod_envvars,
         modulepath=modulepath,
@@ -339,6 +340,7 @@ def create_modulefile(
     is_repo=False,
     branch="main",
     name: str | None = None,
+    installed: bool = False,
     repo_path: str | None = None,
     envvars={},
     modulepath: str | None = None,
@@ -350,7 +352,7 @@ def create_modulefile(
         fail()
 
     if modulepath is None:
-        modulepath = '/home/sdss5/software/modulefiles'
+        modulepath = "/home/sdss5/software/modulefiles"
 
     if is_repo:
         name = name or product.split("/")[-1]
@@ -380,15 +382,15 @@ def create_modulefile(
     else:
         deps = dep_prompt.split()
 
-    if repo_path:
-        if yn("Add PYTHONPATH?"):
-            pythonpath = click.prompt("PYTHONATH to use", default=repo_path)
+    if not installed and repo_path:
+        if yn("Add PYTHONPATH?", default="n"):
+            pythonpath = click.prompt("PYTHONATH to use", default="repo_path")
             envvars["PYTHONPATH"] = pythonpath
 
-        if yn("Add to PATH?"):
-            default_path = os.path.join(repo_path, "bin")
-            path = click.prompt("PYTHONATH to use", default=default_path)
-            envvars["PATH"] = path
+    if yn("Add to PATH?", default="n") and repo_path:
+        default_path = os.path.join(repo_path, "bin")
+        path = click.prompt("PYTHONATH to use", default=default_path)
+        envvars["PATH"] = path
 
     lines = [f"conflict('{name}')", ""]
 
