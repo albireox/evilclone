@@ -221,12 +221,15 @@ def create_environment(
     pyenv_versions = run("pyenv versions --bare")
     versions = list(map(lambda x: x.strip(), pyenv_versions.splitlines()))
 
+    pyenv_global = run("pyenv global").strip()
+
     if environment in versions:
         if yn("Environment already exists. Use it?", yes=yes):
             return environment
         else:
             fail()
     else:
+        base_version = click.prompt("Base version", default=pyenv_global)
         click.echo(
             click.style(
                 f"Creating virtual environment {environment}.",
@@ -234,8 +237,7 @@ def create_environment(
             )
         )
 
-        pyenv_global = run("pyenv global").strip()
-        run(f"pyenv virtualenv {pyenv_global} {environment}")
+        run(f"pyenv virtualenv {base_version} {environment}")
 
         run_with_pyenv("pip install -U pip setuptools wheel", environment)
 
