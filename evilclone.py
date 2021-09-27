@@ -350,9 +350,7 @@ def create_modulefile(
         fail()
 
     if modulepath is None:
-        modulepath = os.environ["MODULEPATH"]
-    else:
-        modulepath = str(modulepath)
+        modulepath = '/home/sdss5/software/modulefiles'
 
     if is_repo:
         name = name or product.split("/")[-1]
