@@ -207,7 +207,8 @@ def create_environment(
 
     if environment is None:
         if is_repo:
-            environment = getuser() + "-" + product.split("/")[-1] + "-" + branch
+            branch_safe = branch.replace('/', '_')
+            environment = getuser() + "-" + product.split("/")[-1] + "-" + branch_safe
         else:
             auto_name, version = get_product_parts(product)
             name = name or auto_name
