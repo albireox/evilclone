@@ -254,7 +254,7 @@ def clone_repo(
     """Clones a repo."""
 
     name = repo_url.split("/")[-1]
-    default_path = os.path.join(product_dir, name, branch)
+    default_path = os.path.join(product_dir, name, branch.replace("/", "_"))
 
     if yes:
         path = default_path
