@@ -333,23 +333,29 @@ def install_repo(repo_path: str, environment: str, yes=False) -> bool:
     files = glob("*")
 
     if "pyproject.toml" in files:
-        command = "poetry install"
-        prompt = "Poetry install?"
+        prompt = "Install with poetry (1), pip (2), or no install (3)?"
+        setup_prompt = click.prompt(prompt, default="1")
+        if setup_prompt == "1":
+            command = "poetry install"
+        elif setup_prompt == "2":
+            command = "pip install -e ."
+        elif setup_prompt == "3":
+            return False
+        else:
+            fail()
     elif "setup.py" in files:
         command = "pip install -e ."
-        prompt = "Pip install repository?"
+        if not yn("Pip install repository?", yes=yes):
+            return False
     else:
         if not yn("Cannot find setup.py or pyproject.py. Continue?", yes=yes):
             fail()
         else:
             return False
 
-    if yn(prompt, yes=yes):
-        click.echo(click.style("Running installation.", fg="blue"))
-        run_with_pyenv(command, environment)
-        return True
-
-    return False
+    click.echo(click.style("Running installation.", fg="blue"))
+    run_with_pyenv(command, environment)
+    return True
 
 
 def create_modulefile(
