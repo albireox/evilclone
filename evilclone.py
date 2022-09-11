@@ -12,7 +12,6 @@ import os
 import re
 import subprocess
 import sys
-from getpass import getuser
 from glob import glob
 from shutil import rmtree
 from typing import Tuple, cast
@@ -217,12 +216,12 @@ def create_environment(
     if environment is None:
         if is_repo:
             branch_safe = branch.replace("/", "_")
-            environment = getuser() + "-" + product.split("/")[-1] + "-" + branch_safe
+            environment = product.split("/")[-1] + "-" + branch_safe
         else:
             auto_name, version = get_product_parts(product)
             name = name or auto_name
             if version:
-                environment = getuser() + "-" + name + "-" + version
+                environment = name + "-" + version
 
     environment = click.prompt("Environment name", default=environment)
     if not environment:
