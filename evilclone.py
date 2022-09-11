@@ -42,13 +42,15 @@ PRODUCT_DIR = "/home/sdss5/software/"
     help="Root of the modulefiles path.",
 )
 @click.option("-b", "--branch", type=str, default="main", help="Branch to checkout.")
+@click.option("-t", "--tag", type=str, help="Tag to checkout.")
 @click.option("-e", "--environment", type=str, help="Name of the virtual environment.")
 @click.option("-y", "--yes", is_flag=True, help="Accept default values.")
 def evilclone(
     product: str,
     clone=False,
-    environment: str = None,
+    environment: str | None = None,
     branch: str = "main",
+    tag: str | None = None,
     dir: str | None = None,
     modulepath: str | None = None,
     yes=False,
@@ -66,12 +68,13 @@ def evilclone(
     name = get_name(product, is_repo=clone)
 
     if clone:
-        product = get_repo_path(product, branch=branch)
+        product = get_repo_path(product)
         environment = create_environment(
             environment,
             product,
             is_repo=True,
             branch=branch,
+            tag=tag,
             name=name,
             yes=yes,
         )
@@ -80,6 +83,7 @@ def evilclone(
             environment,
             product_dir=product_dir,
             branch=branch,
+            tag=tag,
             yes=yes,
         )
         install_repo(repo_path, environment, yes=yes)
@@ -100,6 +104,7 @@ def evilclone(
         environment,
         is_repo=clone,
         branch=branch,
+        tag=tag,
         name=name,
         repo_path=repo_path,
         envvars=lmod_envvars,
@@ -175,7 +180,7 @@ def get_name(product: str, is_repo=False) -> str:
     return name
 
 
-def get_repo_path(product: str, branch="main"):
+def get_repo_path(product: str):
     """Returns the path to the repository."""
 
     if product.startswith("http"):
@@ -198,16 +203,20 @@ def get_product_parts(product: str) -> Tuple[str, str]:
 def create_environment(
     environment: str | None,
     product: str,
-    is_repo=False,
-    branch="main",
+    is_repo: bool = False,
+    branch: str = "main",
+    tag: str | None = None,
     name: str | None = None,
-    yes=False,
+    yes: bool = False,
 ) -> str:
     """Creates the virtual environment."""
 
+    if tag is not None:
+        branch = tag
+
     if environment is None:
         if is_repo:
-            branch_safe = branch.replace('/', '_')
+            branch_safe = branch.replace("/", "_")
             environment = getuser() + "-" + product.split("/")[-1] + "-" + branch_safe
         else:
             auto_name, version = get_product_parts(product)
@@ -248,11 +257,18 @@ def create_environment(
 def clone_repo(
     repo_url: str,
     environment: str,
-    product_dir=PRODUCT_DIR,
-    branch="main",
-    yes=False,
+    product_dir: str = PRODUCT_DIR,
+    branch: str = "main",
+    tag: str | None = None,
+    yes: bool = False,
 ):
     """Clones a repo."""
+
+    is_tag = False
+
+    if tag is not None:
+        branch = tag
+        is_tag = True
 
     name = repo_url.split("/")[-1]
     default_path = os.path.join(product_dir, name, branch.replace("/", "_"))
@@ -280,13 +296,15 @@ def clone_repo(
     current_branch = match.groups()[0]
 
     if current_branch != branch:
-        run(f"git checkout -b {branch} origin/{branch}")
+        if is_tag:
+            run(f"git checkout -b {branch} {tag}")
+        else:
+            run(f"git checkout -b {branch} origin/{branch}")
 
     with open(".python-version", "w") as f:
         f.write(environment)
 
-    tags = map(lambda x: x.strip(), run("git tag").splitlines())
-    if branch in tags:
+    if is_tag:
         rmtree(os.path.join(path, ".git"))
 
     return path
@@ -338,13 +356,14 @@ def install_repo(repo_path: str, environment: str, yes=False) -> bool:
 def create_modulefile(
     product: str,
     environment: str,
-    is_repo=False,
-    branch="main",
+    is_repo: bool = False,
+    branch: str = "main",
+    tag: str | None = None,
     name: str | None = None,
     repo_path: str | None = None,
     envvars={},
     modulepath: str | None = None,
-    yes=False,
+    yes: bool = False,
 ):
     """Creates the modulefile."""
 
@@ -356,7 +375,7 @@ def create_modulefile(
 
     if is_repo:
         name = name or product.split("/")[-1]
-        version = branch
+        version = tag or branch
     else:
         if name:
             _, version = get_product_parts(product)
