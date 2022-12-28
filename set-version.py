@@ -22,11 +22,14 @@ except ImportError:
 
 @click.command(name="set-version")
 @click.argument("PRODUCT", type=str)
-@click.argument("VERSION", type=str)
-def set_version(product: str, version: str):
+@click.argument("VERSION", type=str, required=False)
+def set_version(product: str, version: str | None = None):
     """Sets a modulefile version as default."""
 
     path = get_modulefile_path(product, version)
+
+    if version is None:
+        return
 
     module_dir = os.path.dirname(path)
     default = os.path.join(module_dir, "default")
@@ -48,10 +51,10 @@ def run(command: str, shell=True, cwd=None) -> str | None:
     return cmd.stdout.decode(), cmd.stderr.decode()
 
 
-def get_modulefile_path(product: str, version: str):
+def get_modulefile_path(product: str, version: str | None = None):
     """Gets the path to a modulefile."""
 
-    module = f"{product}/{version}"
+    module = f"{product}/{version}" if version else product
 
     result = run(f"module show {module}")
     if result is None:
@@ -61,7 +64,10 @@ def get_modulefile_path(product: str, version: str):
     lines = result[1].splitlines()
     path = lines[1].strip()[:-1]
 
-    click.echo(click.style(f"Module found at {path}", fg="white"))
+    if version:
+        click.echo(click.style(f"Module found at {path}", fg="white"))
+    else:
+        click.echo(click.style(f"Default module is {path}", fg="white"))
 
     return path
 
