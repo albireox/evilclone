@@ -171,6 +171,8 @@ def get_name(product: str, is_repo=False) -> str:
 
     if not is_repo:
         name, _ = get_product_parts(product)
+        if name.startswith("sdss-"):
+            name = name[5:]
     else:
         name = product.split("/")[-1]
 
@@ -222,6 +224,8 @@ def create_environment(
             name = name or auto_name
             if version:
                 environment = name + "-" + version
+            else:
+                environment = name
 
     environment = click.prompt("Environment name", default=environment)
     if not environment:
