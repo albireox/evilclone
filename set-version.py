@@ -34,7 +34,7 @@ def set_version(product: str, version: str):
         os.unlink(default)
 
     os.symlink(path, default)
-    click.echo(click.style(f"Created default symlink {default}", fg="gray"))
+    click.echo(click.style(f"Created default symlink {default}", fg="white"))
 
 
 def run(command: str, shell=True, cwd=None) -> str | None:
@@ -45,7 +45,7 @@ def run(command: str, shell=True, cwd=None) -> str | None:
     if cmd.returncode != 0:
         return None
 
-    return cmd.stdout.decode()
+    return cmd.stdout.decode(), cmd.stderr.decode()
 
 
 def get_modulefile_path(product: str, version: str):
@@ -58,10 +58,10 @@ def get_modulefile_path(product: str, version: str):
         click.echo(click.style(f"Module {module} not found.", fg="red"))
         raise click.Abort()
 
-    lines = result.splitlines()
+    lines = result[1].splitlines()
     path = lines[1].strip()[:-1]
 
-    click.echo(click.style(f"Module found at {path}", fg="gray"))
+    click.echo(click.style(f"Module found at {path}", fg="white"))
 
     return path
 
