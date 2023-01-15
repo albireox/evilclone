@@ -196,7 +196,7 @@ def get_repo_path(product: str):
 def get_product_parts(product: str) -> Tuple[str, str]:
     """Split dependency specification into name and version."""
 
-    match = re.match(r"([a-zA-Z0-9_-]+)[><=~!]*([0-9.]*)", product)
+    match = re.match(r"([a-zA-Z0-9_-]+)[><=~!]*([0-9.ab]*)", product)
     assert match and (match.group(2) is None or match.group(2) != "")
     return cast(Tuple[str, str], match.groups())
 
