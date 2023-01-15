@@ -43,6 +43,10 @@ def set_version(product: str, version: str | None = None):
 def run(command: str, shell=True, cwd=None) -> str | None:
     """Runs a command in a shell and return the stdout."""
 
+    # This seems necessary at LCO
+    if os.environ.get('OBSERVATORY', None) == "LCO":
+        command = 'source /home/sdss5/config/bash/00_lmod.sh && ' + command
+
     cmd = subprocess.run(command, shell=shell, capture_output=True, cwd=cwd)
 
     if cmd.returncode != 0:
