@@ -26,6 +26,9 @@ except ImportError:
 def set_version(product: str, version: str | None = None):
     """Sets a modulefile version as default."""
 
+    if '/' in product:
+        product, version = product.split('/')
+
     path = get_modulefile_path(product, version)
 
     if version is None:
