@@ -40,7 +40,7 @@ def set_version(product: str, version: str | None = None):
     click.echo(click.style(f"Created default symlink {default}", fg="white"))
 
 
-def run(command: str, shell=True, cwd=None) -> str | None:
+def run(command: str, shell=True, cwd=None) -> tuple[str | None, str | None] | None:
     """Runs a command in a shell and return the stdout."""
 
     # This seems necessary at LCO
@@ -61,7 +61,7 @@ def get_modulefile_path(product: str, version: str | None = None):
     module = f"{product}/{version}" if version else product
 
     result = run(f"module show {module}")
-    if result is None:
+    if result is None or result[1] is None:
         click.echo(click.style(f"Module {module} not found.", fg="red"))
         raise click.Abort()
 
